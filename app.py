@@ -6,7 +6,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 warnings.filterwarnings('ignore')
 
-# --- 페이지 기본 설정 ---
 st.set_page_config(page_title="AI 실시간 주가 예보", page_icon="📈", layout="centered")
 
 def get_smart_ticker(user_input):
@@ -62,26 +61,17 @@ def predict_direction(df, shift_period, target_type='Close'):
     features = ['Trend_20', 'Momentum_10', 'Candle_Pullback', 'Candle_Rejection', 
                 'Volume_Spike', 'Stoch_5', 'Stoch_14', 'Stoch_20', 'RSI_5', 'RSI_14', 'RSI_21']
     
-    # ⚡ 속도 최적화: 300명의 스나이퍼 특공대로 압축! (n_estimators=300)
-    model = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=1)
+    # 웹 서버용 가벼운 100명 세팅
+    model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)
     
     train_data = df.iloc[:-1]
     latest_data = df.iloc[[-1]]
     
     model.fit(train_data[features], train_data['Target'])
-    prob = model.predict_proba(latest_data[features])[0][1] 
-    return prob
+    return model.predict_proba(latest_data[features])[0][1] 
 
-def get_weather(prob):
-    if prob >= 0.65: return "☀️ 맑음"
-    elif prob >= 0.55: return "⛅ 약간"
-    elif prob >= 0.45: return "☁️ 흐림"
-    elif prob >= 0.35: return "🌧️ 비"
-    else: return "⛈️ 폭우"
-
-# --- 화면 UI 구성 ---
 st.title("🚀 AI 실시간 주가 예보")
-st.markdown("정예 300명의 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
+st.markdown("정예 100명의 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
 
 raw_input = st.text_input("🎯 종목코드 입력 (예: TQQQ, 005930, NQ, BTC)", "")
 
@@ -97,7 +87,7 @@ if st.button("초고속 분석 시작 ⚡"):
                 data_1d = yf.Ticker(ticker).history(period="5y", interval="1d")
                 
                 if data_1d.empty or data_5m.empty:
-                    st.error(f"❌ '{ticker}' 데이터를 찾을 수 없습니다. 다시 입력해주세요.")
+                    st.error(f"❌ '{ticker}' 데이터를 찾을 수 없습니다.")
                 else:
                     df_5m = add_features(data_5m)
                     df_1d = add_features(data_1d)
@@ -113,9 +103,20 @@ if st.button("초고속 분석 시작 ⚡"):
 
                     results = []
                     for time_label, prob in probs.items():
-                        weather = get_weather(prob)
-                        direction = "🔴 상승" if prob >= 0.5 else "🔵 하락"
-                        display_prob = prob if prob >= 0.5 else (1 - prob)
+                        is_up = prob >= 0.5
+                        display_prob = prob if is_up else (1 - prob)
+                        
+                        # 상승/하락 확률에 맞춘 직관적인 날씨 재조정
+                        if is_up:
+                            if display_prob >= 0.65: weather = "☀️ 맑음"
+                            elif display_prob >= 0.55: weather = "⛅ 약간"
+                            else: weather = "☁️ 흐림"
+                            direction = "🔴 상승"
+                        else:
+                            if display_prob >= 0.65: weather = "⛈️ 폭우"
+                            elif display_prob >= 0.55: weather = "🌧️ 비"
+                            else: weather = "☁️ 흐림"
+                            direction = "🔵 하락"
                         
                         results.append({
                             "시간": time_label,
@@ -123,9 +124,8 @@ if st.button("초고속 분석 시작 ⚡"):
                             "예측 방향": f"{direction} ({display_prob * 100:.1f}%)"
                         })
                     
-                    df_results = pd.DataFrame(results)
                     st.success(f"📈 [{ticker}] 고속 분석 완료!")
-                    st.table(df_results)
+                    st.table(pd.DataFrame(results))
                     
             except Exception as e:
                 st.error(f"❌ 분석 중 오류가 발생했습니다: {e}")

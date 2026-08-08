@@ -62,8 +62,8 @@ def predict_direction(df, shift_period, target_type='Close'):
     features = ['Trend_20', 'Momentum_10', 'Candle_Pullback', 'Candle_Rejection', 
                 'Volume_Spike', 'Stoch_5', 'Stoch_14', 'Stoch_20', 'RSI_5', 'RSI_14', 'RSI_21']
     
-    # 웹 서버 부담을 줄이기 위해 n_jobs=1로 자동 최적화
-    model = RandomForestClassifier(n_estimators=1000, random_state=42, n_jobs=1)
+    # ⚡ 속도 최적화: 300명의 스나이퍼 특공대로 압축! (n_estimators=300)
+    model = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=1)
     
     train_data = df.iloc[:-1]
     latest_data = df.iloc[[-1]]
@@ -80,18 +80,18 @@ def get_weather(prob):
     else: return "⛈️ 폭우"
 
 # --- 화면 UI 구성 ---
-st.title("🚀 AI 실시간 일기예보")
-st.markdown("스나이퍼 1,000개 AI 투표 시스템이 실시간 방향성을 예측합니다.")
+st.title("🚀 AI 주가 일기예보 (고속 모드)")
+st.markdown("정예 300개 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
 
 raw_input = st.text_input("🎯 종목코드 입력 (예: TQQQ, 005930, NQ, BTC)", "")
 
-if st.button("분석 시작 🔍"):
+if st.button("초고속 분석 시작 ⚡"):
     if not raw_input:
         st.warning("종목 코드를 입력해주세요!")
     else:
         ticker = get_smart_ticker(raw_input)
         
-        with st.spinner(f"⏳ [{ticker}] AI가 11개 지표를 분석 중입니다... (약 10초)"):
+        with st.spinner(f"⏳ [{ticker}] AI 특공대 분석 중..."):
             try:
                 data_5m = yf.Ticker(ticker).history(period="60d", interval="5m")
                 data_1d = yf.Ticker(ticker).history(period="5y", interval="1d")
@@ -102,17 +102,16 @@ if st.button("분석 시작 🔍"):
                     df_5m = add_features(data_5m)
                     df_1d = add_features(data_1d)
 
+                    # ⚡ 속도 최적화: 120분 예측 제거
                     probs = {
                         "🕒 5분후": predict_direction(df_5m, 1),
                         "🕒 15분후": predict_direction(df_5m, 3),
                         "🕒 30분후": predict_direction(df_5m, 6),
                         "🕒 60분후": predict_direction(df_5m, 12),
-                        "🕒 120분": predict_direction(df_5m, 24),
                         "🌅 낼시가": predict_direction(df_1d, 1, target_type='Open'),
                         "🌇 낼종가": predict_direction(df_1d, 1)
                     }
 
-                    # 결과 데이터 생성
                     results = []
                     for time_label, prob in probs.items():
                         weather = get_weather(prob)
@@ -126,10 +125,7 @@ if st.button("분석 시작 🔍"):
                         })
                     
                     df_results = pd.DataFrame(results)
-                    
-                    st.success(f"📈 [{ticker}] 분석 완료!")
-                    
-                    # 스마트폰에 꽉 차게 예쁜 표 형태로 출력
+                    st.success(f"📈 [{ticker}] 고속 분석 완료!")
                     st.table(df_results)
                     
             except Exception as e:

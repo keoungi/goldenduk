@@ -61,7 +61,7 @@ def predict_direction(df, shift_period, target_type='Close'):
     features = ['Trend_20', 'Momentum_10', 'Candle_Pullback', 'Candle_Rejection', 
                 'Volume_Spike', 'Stoch_5', 'Stoch_14', 'Stoch_20', 'RSI_5', 'RSI_14', 'RSI_21']
     
-    # 웹 서버용 가벼운 100명 세팅
+    # ⚡ 앱용 고속 최적화: 100명 세팅
     model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)
     
     train_data = df.iloc[:-1]
@@ -71,17 +71,17 @@ def predict_direction(df, shift_period, target_type='Close'):
     return model.predict_proba(latest_data[features])[0][1] 
 
 st.title("🚀 AI 실시간 주가 예보")
-st.markdown("정예 100명의 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
+st.markdown("정예 100명의 AI 특공대가 11개 지표를 기반으로 **하락 위험(강수확률)**을 예보합니다.")
 
 raw_input = st.text_input("🎯 종목코드 입력 (예: TQQQ, 005930, NQ, BTC)", "")
 
-if st.button("초고속 분석 시작 ⚡"):
+if st.button("초고속 예보 확인 ⚡"):
     if not raw_input:
         st.warning("종목 코드를 입력해주세요!")
     else:
         ticker = get_smart_ticker(raw_input)
         
-        with st.spinner(f"⏳ [{ticker}] AI 특공대 분석 중..."):
+        with st.spinner(f"⏳ [{ticker}] AI 예보관 분석 중..."):
             try:
                 data_5m = yf.Ticker(ticker).history(period="60d", interval="5m")
                 data_1d = yf.Ticker(ticker).history(period="5y", interval="1d")
@@ -103,28 +103,22 @@ if st.button("초고속 분석 시작 ⚡"):
 
                     results = []
                     for time_label, prob in probs.items():
-                        is_up = prob >= 0.5
-                        display_prob = prob if is_up else (1 - prob)
+                        # 강수확률(하락확률) = (1 - 상승확률) * 100
+                        precip_prob = (1 - prob) * 100
                         
-                        # 상승/하락 확률에 맞춘 직관적인 날씨 재조정
-                        if is_up:
-                            if display_prob >= 0.65: weather = "☀️ 맑음"
-                            elif display_prob >= 0.55: weather = "⛅ 약간"
-                            else: weather = "☁️ 흐림"
-                            direction = "🔴 상승"
-                        else:
-                            if display_prob >= 0.65: weather = "⛈️ 폭우"
-                            elif display_prob >= 0.55: weather = "🌧️ 비"
-                            else: weather = "☁️ 흐림"
-                            direction = "🔵 하락"
+                        if precip_prob <= 35: weather = "☀️ 맑음"
+                        elif precip_prob <= 45: weather = "⛅ 약간"
+                        elif precip_prob <= 55: weather = "☁️ 흐림"
+                        elif precip_prob <= 65: weather = "🌧️ 비"
+                        else: weather = "⛈️ 폭우"
                         
                         results.append({
                             "시간": time_label,
                             "날씨": weather,
-                            "예측 방향": f"{direction} ({display_prob * 100:.1f}%)"
+                            "강수확률 (하락위험)": f"{precip_prob:.1f}%"
                         })
                     
-                    st.success(f"📈 [{ticker}] 고속 분석 완료!")
+                    st.success(f"📈 [{ticker}] 고속 예보 완료!")
                     st.table(pd.DataFrame(results))
                     
             except Exception as e:

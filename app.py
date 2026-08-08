@@ -18,6 +18,14 @@ def get_smart_ticker(user_input):
     if user_input in ["BTC", "ETH"]: return user_input + "-USD"
     return user_input
 
+# ⚡ 속도 아이디어 3: 스트림릿 캐싱 (5분 동안 데이터 기억)
+@st.cache_data(ttl=300)
+def load_data(ticker):
+    # ⚡ 속도 아이디어 1: 5분봉 데이터를 60일에서 30일로 단축
+    data_5m = yf.Ticker(ticker).history(period="30d", interval="5m")
+    data_1d = yf.Ticker(ticker).history(period="5y", interval="1d")
+    return data_5m, data_1d
+
 def add_features(data):
     df = data.copy()
     df['MA20'] = df['Close'].rolling(window=20).mean()
@@ -61,8 +69,8 @@ def predict_direction(df, shift_period, target_type='Close'):
     features = ['Trend_20', 'Momentum_10', 'Candle_Pullback', 'Candle_Rejection', 
                 'Volume_Spike', 'Stoch_5', 'Stoch_14', 'Stoch_20', 'RSI_5', 'RSI_14', 'RSI_21']
     
-    # ⚡ 앱용 고속 최적화: 100명 세팅
-    model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)
+    # ⚡ 속도 아이디어 2: 특공대 300명 유지 & 최대 깊이 10으로 제한
+    model = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=42, n_jobs=1)
     
     train_data = df.iloc[:-1]
     latest_data = df.iloc[[-1]]
@@ -71,7 +79,7 @@ def predict_direction(df, shift_period, target_type='Close'):
     return model.predict_proba(latest_data[features])[0][1] 
 
 st.title("🚀 AI 실시간 주가 예보")
-st.markdown("정예 100명의 AI 특공대가 11개 지표를 기반으로 **하락 위험(강수확률)**을 예보합니다.")
+st.markdown("정예 300명의 AI 특공대가 11개 지표를 기반으로 **하락 위험(강수확률)**을 초고속 예보합니다.")
 
 raw_input = st.text_input("🎯 종목코드 입력 (예: TQQQ, 005930, NQ, BTC)", "")
 
@@ -83,8 +91,8 @@ if st.button("초고속 예보 확인 ⚡"):
         
         with st.spinner(f"⏳ [{ticker}] AI 예보관 분석 중..."):
             try:
-                data_5m = yf.Ticker(ticker).history(period="60d", interval="5m")
-                data_1d = yf.Ticker(ticker).history(period="5y", interval="1d")
+                # 최적화된 캐싱 함수로 데이터 불러오기
+                data_5m, data_1d = load_data(ticker)
                 
                 if data_1d.empty or data_5m.empty:
                     st.error(f"❌ '{ticker}' 데이터를 찾을 수 없습니다.")
@@ -118,7 +126,7 @@ if st.button("초고속 예보 확인 ⚡"):
                             "강수확률 (하락위험)": f"{precip_prob:.1f}%"
                         })
                     
-                    st.success(f"📈 [{ticker}] 고속 예보 완료!")
+                    st.success(f"📈 [{ticker}] 초고속 예보 완료!")
                     st.table(pd.DataFrame(results))
                     
             except Exception as e:

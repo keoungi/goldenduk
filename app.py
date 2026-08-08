@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 warnings.filterwarnings('ignore')
 
 # --- 페이지 기본 설정 ---
-st.set_page_config(page_title="AI 주가 일기예보", page_icon="📈", layout="centered")
+st.set_page_config(page_title="AI 실시간 주가 예보", page_icon="📈", layout="centered")
 
 def get_smart_ticker(user_input):
     user_input = user_input.upper().strip()

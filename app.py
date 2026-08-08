@@ -80,8 +80,8 @@ def get_weather(prob):
     else: return "⛈️ 폭우"
 
 # --- 화면 UI 구성 ---
-st.title("🚀 AI 주가 일기예보 (고속 모드)")
-st.markdown("정예 300개 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
+st.title("🚀 AI 실시간 주가 예보")
+st.markdown("정예 300명의 AI 특공대가 11개 지표를 실시간으로 빠르게 분석합니다.")
 
 raw_input = st.text_input("🎯 종목코드 입력 (예: TQQQ, 005930, NQ, BTC)", "")
 
@@ -102,7 +102,6 @@ if st.button("초고속 분석 시작 ⚡"):
                     df_5m = add_features(data_5m)
                     df_1d = add_features(data_1d)
 
-                    # ⚡ 속도 최적화: 120분 예측 제거
                     probs = {
                         "🕒 5분후": predict_direction(df_5m, 1),
                         "🕒 15분후": predict_direction(df_5m, 3),
